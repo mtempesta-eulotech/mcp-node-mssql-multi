@@ -8,35 +8,29 @@ export class SchemaTools extends BaseTools {
         const tools = new SchemaTools();
 
         server.tool(
-            "get-schema",
-            "Get the schema of the database, including tables and columns",
-            tools.getSchema
-        );
-
-        server.tool(
             "get-tables",
             "Get a list of all tables in the database",
-            tools.getTables
+            tools.getTables.bind(tools)
         );
 
         server.tool(
             "get-table",
             "Get a specific table by name",
             { tableName: z.string().describe("The name of the table to retrieve") },
-            tools.getTable
+            tools.getTable.bind(tools)
         )
 
         server.tool(
             "get-stored-procedures", 
             "Get a list of all stored procedures in the database", 
-            tools.getStoredProcedures
+            tools.getStoredProcedures.bind(tools)
         );
 
         server.tool(
             "get-stored-procedure",
             "Get a specific stored procedure by name",
             { procedureName: z.string().describe("The name of the stored procedure to retrieve") },
-            tools.getStoredProcedure
+            tools.getStoredProcedure.bind(tools)
         );
 
         return tools;
@@ -83,9 +77,9 @@ export class SchemaTools extends BaseTools {
         const table = await database.query(`
             SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE
             FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = ?
+            WHERE TABLE_NAME = @tableName
             ORDER BY ORDINAL_POSITION
-        `, [tableName]);
+        `, { tableName });
 
         if (!table.length) return this.toResult(`Table with name: ${tableName} not found.`);
 

@@ -7,8 +7,8 @@ export async function connect(): Promise<mssql.ConnectionPool> {
 		user: process.env.DB_USERNAME,
 		password: process.env.DB_PASSWORD,
 		database: process.env.DB_DATABASE,
-		connectionTimeout: Number(process.env.CONNECTION_TIMEOUT) ?? 600000,
-		requestTimeout: Number(process.env.REQUEST_TIMEOUT) ?? 300000,
+		connectionTimeout: Number(process.env.CONNECTION_TIMEOUT ?? 600000),
+		requestTimeout: Number(process.env.REQUEST_TIMEOUT ?? 300000),
 		options: {
 			encrypt: process.env.DB_ENCRYPT === 'true',
 			enableArithAbort: process.env.DB_ENABLE_ARITH_ABORT === 'true',
@@ -54,12 +54,14 @@ export async function startTransaction(): Promise<mssql.Transaction> {
 	});
 }
 
-export async function query(query: string, interpolations: any[] = []): Promise<mssql.IRecordSet<any>> {
+export async function query(query: string, interpolations: any = null): Promise<mssql.IRecordSet<any>> {
 	let connection = null;
 	try {
 		connection = await connect();
 		const request = connection.request();
-		interpolations.forEach((value, index) => request.input(`param${index}`, value));
+		if (interpolations) {
+			Object.entries(interpolations).forEach(([key, value]) => request.input(key, value));
+		}
 		const { recordset } = await request.query(query);
 		return recordset;
 	} finally {

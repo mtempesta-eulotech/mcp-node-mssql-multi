@@ -11,7 +11,7 @@ export class QueryTools extends BaseTools {
             "query",
             "Query the database with a SQL statement",
             { query: z.string().describe("The SQL query to execute") },
-            tools.query
+            tools.query.bind(tools)
         );
 
         return tools;

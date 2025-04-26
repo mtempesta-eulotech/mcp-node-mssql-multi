@@ -13,21 +13,21 @@ export class TransactionTools extends BaseTools {
         server.tool(
             "start-transaction",
             "Start a new transaction",
-            tools.startTransaction
+            tools.startTransaction.bind(tools)
         );
 
         server.tool(
             "commit-transaction",
             "Commit a transaction",
             { transactionId: z.string().describe("The ID of the transaction to commit.") },
-            tools.commitTransaction,
+            tools.commitTransaction.bind(tools),
         );
 
         server.tool(
             "rollback-transaction",
             "Rollback a transaction",
             { transactionId: z.string().describe("The ID of the transaction to rollback.") },
-            tools.rollbackTransaction,
+            tools.rollbackTransaction.bind(tools),
         );
 
         return tools;
