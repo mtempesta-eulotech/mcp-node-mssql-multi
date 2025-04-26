@@ -1,0 +1,42 @@
+{
+	"name": "mcp-node-mssql",
+	"author": "Cameron Wilby",
+	"description": "MCP Server for SQL Server using node-mssql",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/cwilby/mcp-node-mssql.git"
+	},
+	"keywords": [
+		"node-mssql",
+		"mcp",
+		"modelcontextprotocol"
+	],
+	"license": "MIT",
+	"version": "0.1.0",
+	"type": "module",
+	"main": "dist/index.js",
+	"bin": {
+		"mcp-server-node-mssql": "dist/index.js"
+	},
+	"files": [
+		"dist"
+	],
+	"devDependencies": {
+		"@types/bun": "latest",
+		"@types/mssql": "^9.1.7",
+		"bun": "^1.2.5"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.6.1",
+		"mssql": "^11.0.1",
+		"zod": "^3.24.2"
+	},
+	"scripts": {
+		"test": "bun test",
+		"ts": "tsc -b",
+		"build": "bun build ./index.ts --outfile dist/index.js --target node"
+	}
+}
