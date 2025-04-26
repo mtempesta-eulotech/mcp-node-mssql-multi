@@ -4,7 +4,7 @@
 	"description": "MCP Server for SQL Server using node-mssql",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/cwilby/mcp-node-mssql.git"
+		"url": "git+https://github.com/cwilby/mcp-node-mssql.git"
 	},
 	"keywords": [
 		"node-mssql",
