@@ -6,9 +6,9 @@ import { SchemaTools } from "./tools/schema";
 import { QueryTools } from "./tools/query";
 import { TransactionTools } from "./tools/transactions";
 
-const { DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_DATABASE } = process.env;
-if (!DB_HOST || !DB_PORT || !DB_USERNAME || !DB_PASSWORD || !DB_DATABASE) {
-	console.error("All database environment variables (DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_DATABASE) are required");
+const { DB_CONF } = process.env;
+if (!DB_CONF) {
+	console.error("Dichiarare la variabile d'ambiente DB_CONF come un json avente chiave l'id del database e valore un json con (DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_DATABASE) are required");
 	process.exit(1);
 }
 
