@@ -2,27 +2,33 @@ import mssql from 'mssql';
 import fs from 'fs';
 
 export async function connect(databaseID: string): Promise<mssql.ConnectionPool> {
+	if(!process.env['DB_' + databaseID]) throw new RangeError("DatabaseID non trovato [" + databaseID + "]");
+	
+	try{
+		let db = JSON.parse(fs.readFileSync(process.env['DB_' + databaseID] + "", 'utf-8'));
 
-	let db = JSON.parse(fs.readFileSync(process.env['DB_' + databaseID], 'utf-8'))
-
-	//let conf = JSON.parse(process.env.DB_CONF+"");
-	//let db = conf[databaseID];
-		
-	return mssql.connect({
-		server: db.DB_HOST ?? '',
-		port: Number(db.DB_PORT ?? 1433),
-		user: db.DB_USERNAME,
-		password: db.DB_PASSWORD,
-		database: db.DB_DATABASE,
-		connectionTimeout: Number(process.env.CONNECTION_TIMEOUT ?? 600000),
-		requestTimeout: Number(process.env.REQUEST_TIMEOUT ?? 300000),
-		options: {
-			encrypt: process.env.DB_ENCRYPT === 'true',
-			enableArithAbort: process.env.DB_ENABLE_ARITH_ABORT === 'true',
-			trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
-			trustedConnection: process.env.TRUSTED_CONNECTION === 'true'
-		}
-	});
+		//let conf = JSON.parse(process.env.DB_CONF+"");
+		//let db = conf[databaseID];
+			
+		return mssql.connect({
+			server: db.DB_HOST ?? '',
+			port: Number(db.DB_PORT ?? 1433),
+			user: db.DB_USERNAME,
+			password: db.DB_PASSWORD,
+			database: db.DB_DATABASE,
+			connectionTimeout: Number(process.env.CONNECTION_TIMEOUT ?? 600000),
+			requestTimeout: Number(process.env.REQUEST_TIMEOUT ?? 300000),
+			options: {
+				encrypt: process.env.DB_ENCRYPT === 'true',
+				enableArithAbort: process.env.DB_ENABLE_ARITH_ABORT === 'true',
+				trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
+				trustedConnection: process.env.TRUSTED_CONNECTION === 'true'
+			}
+		});
+	} catch (err) {
+		console.error("DatabaseID non trovato [" + databaseID + "]"); 
+		throw err;
+	}
 }
 
 export async function usingConnection<T>(databaseID: string, callback: (connection: mssql.ConnectionPool) => Promise<T>): Promise<T> {
