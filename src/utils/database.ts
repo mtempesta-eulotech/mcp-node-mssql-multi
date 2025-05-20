@@ -1,12 +1,15 @@
 import mssql from 'mssql';
 
-export async function connect(): Promise<mssql.ConnectionPool> {
+export async function connect(databaseID: string): Promise<mssql.ConnectionPool> {
+	let conf = JSON.parse(process.env.DB_CONF+"");
+	let db = conf[databaseID];
+		
 	return mssql.connect({
-		server: process.env.DB_HOST ?? '',
-		port: Number(process.env.DB_PORT ?? 1433),
-		user: process.env.DB_USERNAME,
-		password: process.env.DB_PASSWORD,
-		database: process.env.DB_DATABASE,
+		server: db.DB_HOST ?? '',
+		port: Number(db.DB_PORT ?? 1433),
+		user: db.DB_USERNAME,
+		password: db.DB_PASSWORD,
+		database: db.DB_DATABASE,
 		connectionTimeout: Number(process.env.CONNECTION_TIMEOUT ?? 600000),
 		requestTimeout: Number(process.env.REQUEST_TIMEOUT ?? 300000),
 		options: {
@@ -18,8 +21,8 @@ export async function connect(): Promise<mssql.ConnectionPool> {
 	});
 }
 
-export async function usingConnection<T>(callback: (connection: mssql.ConnectionPool) => Promise<T>): Promise<T> {
-	const connection = await connect();
+export async function usingConnection<T>(databaseID: string, callback: (connection: mssql.ConnectionPool) => Promise<T>): Promise<T> {
+	const connection = await connect(databaseID);
 
 	try {
 		return await callback(connection);
@@ -30,8 +33,8 @@ export async function usingConnection<T>(callback: (connection: mssql.Connection
 	}
 }
 
-export async function usingTransaction<T>(callback: (transaction: mssql.Request) => Promise<T>): Promise<T> {
-	return usingConnection(async (connection) => {
+export async function usingTransaction<T>(databaseID: string, callback: (transaction: mssql.Request) => Promise<T>): Promise<T> {
+	return usingConnection(databaseID, async (connection) => {
 		const transaction = new mssql.Transaction(connection);
 
 		try {
@@ -46,18 +49,18 @@ export async function usingTransaction<T>(callback: (transaction: mssql.Request)
 	});
 }
 
-export async function startTransaction(): Promise<mssql.Transaction> {
-	return usingConnection(async (connection) => {
+export async function startTransaction(databaseID: string): Promise<mssql.Transaction> {
+	return usingConnection(databaseID, async (connection) => {
 		const transaction = new mssql.Transaction(connection);
 		await transaction.begin();
 		return transaction;
 	});
 }
 
-export async function query(query: string, interpolations: any = null): Promise<mssql.IRecordSet<any>> {
+export async function query(databaseID: string, query: string, interpolations: any = null): Promise<mssql.IRecordSet<any>> {
 	let connection = null;
 	try {
-		connection = await connect();
+		connection = await connect(databaseID);
 		const request = connection.request();
 		if (interpolations) {
 			Object.entries(interpolations).forEach(([key, value]) => request.input(key, value));
