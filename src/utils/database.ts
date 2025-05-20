@@ -1,8 +1,12 @@
 import mssql from 'mssql';
+import fs from 'fs';
 
 export async function connect(databaseID: string): Promise<mssql.ConnectionPool> {
-	let conf = JSON.parse(process.env.DB_CONF+"");
-	let db = conf[databaseID];
+
+	let db = JSON.parse(fs.readFileSync(process.env['DB_' + databaseID], 'utf-8'))
+
+	//let conf = JSON.parse(process.env.DB_CONF+"");
+	//let db = conf[databaseID];
 		
 	return mssql.connect({
 		server: db.DB_HOST ?? '',
