@@ -40,8 +40,12 @@ export function isReadOnly(databaseID: string): boolean {
 	return readDbFile(databaseID).READ_ONLY === true;
 }
 
+// Pool dedicato per ogni chiamata (il chiamante lo chiude).
+// mssql.connect() usa invece un pool globale unico: con chiamate concorrenti su database diversi
+// può restituire il pool già aperto su un altro database.
 export async function connect(databaseID: string): Promise<mssql.ConnectionPool> {
-	return mssql.connect(buildConfig(readDbFile(databaseID)));
+	// oldcode: return mssql.connect(buildConfig(readDbFile(databaseID)));
+	return new mssql.ConnectionPool(buildConfig(readDbFile(databaseID))).connect();
 }
 
 /* oldcode: sostituito da readDbFile() + buildConfig() + connect() qui sopra

@@ -1,3 +1,8 @@
+// oldcode: tool di transazione disattivati (non funzionanti: startTransaction senza databaseID, connessione chiusa subito dopo il begin).
+// Le modifiche passano dal tool "execute"; il codice resta qui commentato come riferimento.
+export {};
+
+/* oldcode
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import crypto from "node:crypto";
 import { z } from "zod";
@@ -65,3 +70,4 @@ export class TransactionTools extends BaseTools {
         return this.toResult(`Transaction with ID ${transactionId} rolled back successfully.`);
     }
 }
+*/
