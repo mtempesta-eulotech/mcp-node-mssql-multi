@@ -4,7 +4,8 @@ import { name, version } from "../package.json";
 
 import { SchemaTools } from "./tools/schema";
 import { QueryTools } from "./tools/query";
-import { TransactionTools } from "./tools/transactions";
+// oldcode: tool di transazione disattivati, non funzionanti (startTransaction senza databaseID, connessione chiusa subito dopo il begin)
+// import { TransactionTools } from "./tools/transactions";
 /*
 const { DB_CONF } = process.env;
 if (!DB_CONF) {
@@ -16,7 +17,7 @@ const server = new McpServer({ name, version });
 
 SchemaTools.create(server);
 QueryTools.create(server);
-TransactionTools.create(server);
+// oldcode: TransactionTools.create(server);
 
 async function startServer() {
 	try {
