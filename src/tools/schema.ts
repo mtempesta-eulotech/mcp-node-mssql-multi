@@ -3,6 +3,8 @@ import { z } from "zod";
 import { BaseTools } from "./base";
 import * as database from "../utils/database";
 
+const databaseIDSchema = z.string().describe("L'id del database da interrogare");
+
 export class SchemaTools extends BaseTools {
     static create(server: McpServer) {
         const tools = new SchemaTools();
@@ -10,34 +12,40 @@ export class SchemaTools extends BaseTools {
         server.tool(
             "get-tables",
             "Get a list of all tables in the database",
+            { databaseID: databaseIDSchema },
             tools.getTables.bind(tools)
         );
 
         server.tool(
             "get-table",
             "Get a specific table by name",
-            { tableName: z.string().describe("The name of the table to retrieve") },
+            // oldcode: { tableName: z.string().describe("The name of the table to retrieve") },
+            { databaseID: databaseIDSchema, tableName: z.string().describe("The name of the table to retrieve") },
             tools.getTable.bind(tools)
         )
 
         server.tool(
-            "get-stored-procedures", 
-            "Get a list of all stored procedures in the database", 
+            "get-stored-procedures",
+            "Get a list of all stored procedures in the database",
+            { databaseID: databaseIDSchema },
             tools.getStoredProcedures.bind(tools)
         );
 
         server.tool(
             "get-stored-procedure",
             "Get a specific stored procedure by name",
-            { procedureName: z.string().describe("The name of the stored procedure to retrieve") },
+            // oldcode: { procedureName: z.string().describe("The name of the stored procedure to retrieve") },
+            { databaseID: databaseIDSchema, procedureName: z.string().describe("The name of the stored procedure to retrieve") },
             tools.getStoredProcedure.bind(tools)
         );
 
         return tools;
     }
 
-    async getSchema() {
-        const results = await database.query(`
+    // oldcode: async getSchema() {
+    async getSchema({ databaseID }: { databaseID: string }) {
+        // oldcode: const results = await database.query(`
+        const results = await database.query(databaseID, `
             SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE
             FROM INFORMATION_SCHEMA.COLUMNS
             ORDER BY TABLE_NAME, ORDINAL_POSITION
@@ -61,8 +69,10 @@ export class SchemaTools extends BaseTools {
     }
 
 
-    async getTables() {
-        const tables = await database.query(`
+    // oldcode: async getTables() {
+    async getTables({ databaseID }: { databaseID: string }) {
+        // oldcode: const tables = await database.query(`
+        const tables = await database.query(databaseID, `
             SELECT TABLE_NAME, TABLE_TYPE
             FROM INFORMATION_SCHEMA.TABLES
             WHERE TABLE_TYPE = 'BASE TABLE'
@@ -73,8 +83,10 @@ export class SchemaTools extends BaseTools {
         return this.toResult(`Tables found in the database:\n${JSON.stringify(tables)}`);
     }
 
-    async getTable({ tableName }: { tableName: string }) {
-        const table = await database.query(`
+    // oldcode: async getTable({ tableName }: { tableName: string }) {
+    async getTable({ databaseID, tableName }: { databaseID: string, tableName: string }) {
+        // oldcode: const table = await database.query(`
+        const table = await database.query(databaseID, `
             SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = @tableName
@@ -92,8 +104,10 @@ export class SchemaTools extends BaseTools {
         return this.toResult(`Table: ${tableName}\nColumns:\n${JSON.stringify(columns)}`);
     }
 
-    async getStoredProcedures() {
-        const procedures = await database.query(`
+    // oldcode: async getStoredProcedures() {
+    async getStoredProcedures({ databaseID }: { databaseID: string }) {
+        // oldcode: const procedures = await database.query(`
+        const procedures = await database.query(databaseID, `
             SELECT ROUTINE_NAME, ROUTINE_TYPE, ROUTINE_DEFINITION
             FROM INFORMATION_SCHEMA.ROUTINES
             WHERE ROUTINE_TYPE = 'PROCEDURE'
@@ -104,12 +118,16 @@ export class SchemaTools extends BaseTools {
         return this.toResult(`Stored procedures found in the database:\n${JSON.stringify(procedures)}`);
     }
 
-    async getStoredProcedure({ procedureName }: { procedureName: string }) {
-        const procedure = await database.query(`
+    // oldcode: async getStoredProcedure({ procedureName }: { procedureName: string }) {
+    async getStoredProcedure({ databaseID, procedureName }: { databaseID: string, procedureName: string }) {
+        // oldcode: const procedure = await database.query(`
+        const procedure = await database.query(databaseID, `
             SELECT ROUTINE_NAME, ROUTINE_TYPE, ROUTINE_DEFINITION
             FROM INFORMATION_SCHEMA.ROUTINES
-            WHERE ROUTINE_NAME = ?
-        `, [procedureName]);
+            WHERE ROUTINE_NAME = @procedureName
+        `, { procedureName });
+        // oldcode: WHERE ROUTINE_NAME = ?
+        // oldcode: `, [procedureName]);
 
         if (!procedure.length) return this.toResult(`Stored procedure with name: ${procedureName} not found.`);
 
