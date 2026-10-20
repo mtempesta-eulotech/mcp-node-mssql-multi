@@ -176,7 +176,8 @@ export async function readOnlyQuery(databaseID: string, query: string): Promise<
 		const types = await classifyStatements(transaction, query);
 		const forbidden = [...new Set(types.filter(t => !READ_ONLY_STATEMENT_TYPES.has(t)))];
 		if (!types.length) throw new Error("Query rifiutata: nessuno statement riconosciuto");
-		if (forbidden.length) throw new Error(`Query rifiutata: il tool "query" accetta solo letture. Statement non ammessi: ${forbidden.join(', ')}. Per le modifiche usare il tool "execute".`);
+		// oldcode: if (forbidden.length) throw new Error(`Query rifiutata: il tool "query" accetta solo letture. Statement non ammessi: ${forbidden.join(', ')}. Per le modifiche usare il tool "execute".`);
+		if (forbidden.length) throw new Error(`Query rifiutata: il tool "query" accetta solo letture. Statement non ammessi: ${forbidden.join(', ')}. Per le modifiche usare il tool "execute-write".`);
 
 		const { recordset } = await new mssql.Request(transaction).query(query);
 		return recordset;
@@ -190,9 +191,37 @@ export async function readOnlyQuery(databaseID: string, query: string): Promise<
 	}
 }
 
-// Esegue uno statement di modifica (autocommit). Rifiutato se il database è configurato READ_ONLY.
+// Classifica un batch su una connessione dedicata (showplan dentro una transazione poi annullata), senza eseguirlo.
+async function classifyBatch(databaseID: string, query: string): Promise<string[]> {
+	const pool = new mssql.ConnectionPool({ ...buildConfig(readDbFile(databaseID)), pool: { max: 1, min: 0 } });
+	await pool.connect();
+	const transaction = new mssql.Transaction(pool);
+	try {
+		await transaction.begin();
+		return await classifyStatements(transaction, query);
+	} finally {
+		try {
+			await transaction.rollback();
+		} catch {
+			// transazione mai iniziata o già annullata dal server
+		}
+		await pool.close();
+	}
+}
+
+// Esegue uno statement di modifica (autocommit). Rifiutato se il database è configurato READ_ONLY
+// e se il batch contiene solo letture (in quel caso va usato il tool "query", che non richiede conferma).
 export async function execute(databaseID: string, query: string): Promise<{ recordset: mssql.IRecordSet<any>, rowsAffected: number[] }> {
 	if (isReadOnly(databaseID)) throw new Error(`Database [${databaseID}] configurato in sola lettura (READ_ONLY): modifica non consentita`);
+
+	let types: string[] | null = null;
+	try {
+		types = await classifyBatch(databaseID, query);
+	} catch {
+		// classificazione non riuscita (es. tabelle create nello stesso batch): si esegue, il tool richiede comunque conferma
+	}
+	if (types?.length && types.every(t => READ_ONLY_STATEMENT_TYPES.has(t)))
+		throw new Error(`Batch di sola lettura: non eseguito. Per le letture usare il tool "query" (stessi parametri), che non richiede conferma.`);
 
 	let connection = null;
 	try {
