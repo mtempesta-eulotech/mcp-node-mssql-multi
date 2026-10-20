@@ -19,6 +19,10 @@ export class QueryTools extends BaseTools {
         );
         */
 
+		// registerTool (al posto di server.tool) per poter pubblicare _meta:
+		// - query: "anthropic/alwaysLoad" -> Claude Code lo carica subito invece di farlo cercare
+		// - execute-write: "anthropic/requiresUserInteraction" -> Claude Code chiede conferma a ogni chiamata, senza "don't ask again"
+		/* oldcode
 		server.tool(
 			"query",
 			// oldcode: "Run a read-only SQL query (SELECT). The statements are checked before execution: data or schema changes, SELECT INTO, EXEC, transactions and USE are refused. Use the \"execute\" tool for changes.",
@@ -38,6 +42,33 @@ export class QueryTools extends BaseTools {
 			{
 				databaseID: z.string().describe("L'id del database su cui eseguire lo statement"),
 				query: z.string().describe("The SQL statement to execute")
+			},
+			tools.execute.bind(tools)
+		);
+		*/
+
+		server.registerTool(
+			"query",
+			{
+				description: "Run any read-only SQL: SELECT queries, including INFORMATION_SCHEMA / sys catalog lookups, DECLARE/SET of variables and IF/WHILE. This is the tool for every read. The statements are checked before execution: data or schema changes, SELECT INTO, EXEC, transactions and USE are refused; use \"execute-write\" only for those.",
+				inputSchema: {
+					databaseID: z.string().describe("L'id del database da interrogare"),
+					query: z.string().describe("The read-only SQL query to execute")
+				},
+				_meta: { "anthropic/alwaysLoad": true }
+			},
+			tools.query.bind(tools)
+		);
+
+		server.registerTool(
+			"execute-write",
+			{
+				description: "WRITE ONLY: execute a SQL statement that changes data or schema (INSERT, UPDATE, DELETE, MERGE, DDL) or calls a stored procedure (EXEC). Never use it for SELECT or other reads: read-only batches are refused, use the \"query\" tool instead. Changes are committed immediately and require user confirmation. Refused on databases configured as READ_ONLY.",
+				inputSchema: {
+					databaseID: z.string().describe("L'id del database su cui eseguire lo statement"),
+					query: z.string().describe("The SQL statement to execute")
+				},
+				_meta: { "anthropic/requiresUserInteraction": true }
 			},
 			tools.execute.bind(tools)
 		);
