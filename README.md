@@ -24,6 +24,8 @@ Chiave opzionale: \"READ_ONLY\": true — il tool `execute-write` viene rifiutat
 - `query`: sola lettura. Prima dell'esecuzione il batch viene compilato con `SET SHOWPLAN_XML ON` (senza eseguirlo) e sono ammessi solo gli statement di tipo SELECT, SELECT WITHOUT QUERY, ASSIGN (DECLARE/SET di variabili), COND e COND WITH QUERY (IF/WHILE). Tutto il resto (DML, DDL, SELECT INTO, EXEC, transazioni, USE) è rifiutato. La query viene poi eseguita dentro una transazione sempre annullata.
 - `execute-write`: modifiche (INSERT, UPDATE, DELETE, MERGE, DDL, EXEC), in autocommit. Rifiutato sui database con `READ_ONLY: true` e sui batch di sola lettura (che vanno eseguiti con `query`).
 
-In Claude Code conviene mettere `execute-write` tra le regole `ask` (o `deny`):
+`execute-write` pubblica `_meta["anthropic/requiresUserInteraction"]: true`: Claude Code chiede conferma a ogni chiamata, in ogni modalità, senza l'opzione "don't ask again". `query` pubblica `_meta["anthropic/alwaysLoad"]: true`, quindi Claude Code lo carica subito.
+
+In Claude Code si può comunque mettere `execute-write` tra le regole `ask` (o `deny`) come seconda protezione:
 
 	"permissions": { "ask": ["mcp__mssql__execute-write"] }
