@@ -61,11 +61,25 @@ export class QueryTools extends BaseTools {
 		);
 
 		server.registerTool(
+			"get-connection-info",
+			{
+				description: "Get the connection details of a database (no credentials): host, port, database name, environment (svi/coll/prod/local), READ_ONLY flag and the \"target\" string that execute-write requires. Call it before execute-write.",
+				inputSchema: {
+					databaseID: z.string().describe("L'id del database")
+				},
+				_meta: { "anthropic/alwaysLoad": true }
+			},
+			tools.connectionInfo.bind(tools)
+		);
+
+		server.registerTool(
 			"execute-write",
 			{
-				description: "WRITE ONLY: execute a SQL statement that changes data or schema (INSERT, UPDATE, DELETE, MERGE, DDL) or calls a stored procedure (EXEC). Never use it for SELECT or other reads: read-only batches are refused, use the \"query\" tool instead. Changes are committed immediately and require user confirmation. Refused on databases configured as READ_ONLY.",
+				// oldcode: description: "WRITE ONLY: execute a SQL statement that changes data or schema (INSERT, UPDATE, DELETE, MERGE, DDL) or calls a stored procedure (EXEC). Never use it for SELECT or other reads: read-only batches are refused, use the \"query\" tool instead. Changes are committed immediately and require user confirmation. Refused on databases configured as READ_ONLY.",
+				description: "WRITE ONLY: execute a SQL statement that changes data or schema (INSERT, UPDATE, DELETE, MERGE, DDL) or calls a stored procedure (EXEC). Never use it for SELECT or other reads: read-only batches are refused, use the \"query\" tool instead. The \"target\" parameter is required and must be exactly the \"target\" value returned by get-connection-info for the same databaseID: the call is refused if it does not match the current connection. Changes are committed immediately and require user confirmation. Refused on databases configured as READ_ONLY.",
 				inputSchema: {
 					databaseID: z.string().describe("L'id del database su cui eseguire lo statement"),
+					target: z.string().describe("Host, database e ambiente della connessione, esattamente come restituiti da get-connection-info (es. \"10.1.1.83/morca (svi)\")"),
 					query: z.string().describe("The SQL statement to execute")
 				},
 				_meta: { "anthropic/requiresUserInteraction": true }
@@ -83,8 +97,14 @@ export class QueryTools extends BaseTools {
         return this.toResult(JSON.stringify(results));
     }
 
-	async execute({ databaseID, query }: { databaseID: string, query: string }) {
-		const { recordset, rowsAffected } = await database.execute(databaseID, query);
+	async connectionInfo({ databaseID }: { databaseID: string }) {
+		return this.toResult(JSON.stringify(database.connectionInfo(databaseID)));
+	}
+
+	// oldcode: async execute({ databaseID, query }: { databaseID: string, query: string }) {
+	async execute({ databaseID, query, target }: { databaseID: string, query: string, target: string }) {
+		// oldcode: const { recordset, rowsAffected } = await database.execute(databaseID, query);
+		const { recordset, rowsAffected } = await database.execute(databaseID, query, target);
 		let text = `Rows affected: ${JSON.stringify(rowsAffected)}`;
 		if (recordset?.length) text += `\n${JSON.stringify(recordset)}`;
 		return this.toResult(text);
