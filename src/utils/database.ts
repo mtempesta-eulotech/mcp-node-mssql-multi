@@ -1,5 +1,6 @@
 import mssql from 'mssql';
 import fs from 'fs';
+import path from 'path';
 
 // Tipi di statement (StatementType dello showplan) ammessi dal tool "query".
 // SELECT / SELECT WITHOUT QUERY: letture; ASSIGN: DECLARE/SET di variabili; COND / COND WITH QUERY: IF/WHILE.
@@ -32,6 +33,37 @@ function buildConfig(db: any): mssql.config {
 			trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
 			trustedConnection: process.env.TRUSTED_CONNECTION === 'true'
 		}
+	};
+}
+
+export interface ConnectionInfo {
+	databaseID: string;
+	host: string;
+	port: number;
+	database: string;
+	environment: string;
+	readOnly: boolean;
+	target: string;
+}
+
+// Dati di connessione di un databaseID, senza credenziali.
+// L'ambiente è ricavato dal nome del file a cui punta DB_<databaseID> dopo aver risolto i symlink
+// (es. <progetto>/.claude/mcp-db/morca.json -> MCP-AI/morca.svi.json -> "svi").
+// "target" è la stringa che execute-write richiede e verifica: "<host>/<database> (<ambiente>)".
+export function connectionInfo(databaseID: string): ConnectionInfo {
+	const db = readDbFile(databaseID);
+	const file = path.basename(fs.realpathSync(process.env['DB_' + databaseID] + ""));
+	const environment = file.match(/\.(svi|coll|prod|local)\.json$/i)?.[1].toLowerCase() ?? "non determinato";
+	const host = String(db.DB_HOST ?? '');
+	const database = String(db.DB_DATABASE ?? '');
+	return {
+		databaseID,
+		host,
+		port: Number(db.DB_PORT ?? 1433),
+		database,
+		environment,
+		readOnly: db.READ_ONLY === true,
+		target: `${host}/${database} (${environment})`
 	};
 }
 
@@ -211,8 +243,15 @@ async function classifyBatch(databaseID: string, query: string): Promise<string[
 
 // Esegue uno statement di modifica (autocommit). Rifiutato se il database è configurato READ_ONLY
 // e se il batch contiene solo letture (in quel caso va usato il tool "query", che non richiede conferma).
-export async function execute(databaseID: string, query: string): Promise<{ recordset: mssql.IRecordSet<any>, rowsAffected: number[] }> {
+// "target" deve coincidere con connectionInfo(databaseID).target: così la richiesta di conferma mostra
+// host, database e ambiente su cui la scrittura verrà davvero eseguita.
+// oldcode: export async function execute(databaseID: string, query: string): Promise<{ recordset: mssql.IRecordSet<any>, rowsAffected: number[] }> {
+export async function execute(databaseID: string, query: string, target: string): Promise<{ recordset: mssql.IRecordSet<any>, rowsAffected: number[] }> {
 	if (isReadOnly(databaseID)) throw new Error(`Database [${databaseID}] configurato in sola lettura (READ_ONLY): modifica non consentita`);
+
+	const expected = connectionInfo(databaseID).target;
+	if ((target ?? '').trim().toLowerCase() !== expected.toLowerCase())
+		throw new Error(`Target errato: non eseguito. Per [${databaseID}] il target è "${expected}" (ricevuto "${target}"). Ricava il target con get-connection-info e riprova.`);
 
 	let types: string[] | null = null;
 	try {
